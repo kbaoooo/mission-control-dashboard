@@ -1,5 +1,5 @@
 // Chờ thư viện Leaflet (L) nạp xong
-const initWhenReady = setInterval(() => {
+const initWhenReady = setInterval(function() {
   if (typeof L !== 'undefined') {
     clearInterval(initWhenReady);
     runDashboard(); 
@@ -8,44 +8,50 @@ const initWhenReady = setInterval(() => {
 
 function runDashboard() {
   // ======================
-  // INIT MAP (Hệ tọa độ phẳng đơn giản để dùng ảnh cục bộ)
+  // INIT MAP (Hệ tọa độ phẳng vô hạn cho ảnh cục bộ)
   // ======================
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: false,
-    crs: L.CRS.Simple, // Bắt buộc để dùng 1 file ảnh duy nhất
+    crs: L.CRS.Simple,
     minZoom: -2,
     maxZoom: 2
   });
 
-  // Định vị khung đồ họa chuẩn trục [Y, X] cho ảnh tỉ lệ 2000x1000
-  const southWest = L.latLng(0, 0);
-  const northEast = L.latLng(1000, 2000);
-  const bounds = L.latLngBounds(southWest, northEast);
+  // Khởi tạo ma trận ranh giới bản đồ (2000 x 1000) không dùng cú pháp ngoặc vuông lồng nhau
+  var pointBottomLeft = new Array();
+  pointBottomLeft.push(0);
+  pointBottomLeft.push(0);
+
+  var pointTopRight = new Array();
+  pointTopRight.push(1000);
+  pointTopRight.push(2000);
+
+  var nativeBounds = new Array();
+  nativeBounds.push(pointBottomLeft);
+  nativeBounds.push(pointTopRight);
 
   // ======================
   // SỬ DỤNG HÌNH ẢNH MAP.WEBP TỪ REPO CỦA BẠN
   // ======================
-  const localMap = L.imageOverlay('map.webp', bounds).addTo(map);
-  map.fitBounds(bounds); // Tự động căn bản đồ vừa khít khung hiển thị
+  L.imageOverlay('map.webp', nativeBounds).addTo(map);
+  map.fitBounds(nativeBounds);
 
   // ======================
-  // TRẠM MẶT ĐẤT ĐÀ NẴNG (Tọa độ trục [Y, X] tương đối trên ảnh)
+  // TRẠM MẶT ĐẤT ĐÀ NẴNG
   // ======================
-  const danangCoords = L.latLng(540, 1600); 
+  var stationPoint = new Array();
+  stationPoint.push(540);
+  stationPoint.push(1600);
   
   const groundStationIcon = L.divIcon({
     className: 'gs-icon',
-    html: `
-      <div class="gs-pulse"></div>
-      <div class="gs-dot"></div>
-      <div class="gs-label">GS-1 DANANG</div>
-    `,
+    html: '<div class="gs-pulse"></div><div class="gs-dot"></div><div class="gs-label">GS-1 DANANG</div>',
     iconSize: L.point(20, 20),
     iconAnchor: L.point(10, 10)
   });
   
-  L.marker(danangCoords, { icon: groundStationIcon }).addTo(map);
+  L.marker(stationPoint, { icon: groundStationIcon }).addTo(map);
 
   // ======================
   // SATELLITE DATA
@@ -59,47 +65,51 @@ function runDashboard() {
   // ======================
   // CREATE SATELLITES
   // ======================
-  const satObjects = satellites.map((sat, i) => {
+  const satObjects = satellites.map(function(sat, i) {
     const icon = L.divIcon({
       className: 'satellite-custom-icon', 
-      html: `
-        <div class="sat-dot" style="background:${sat.color}; box-shadow: 0 0 8px ${sat.color}, 0 0 16px ${sat.color}"></div>
-        <div class="sat-label" style="border-left: 2px solid ${sat.color}">${sat.name}</div>
-      `,
+      html: '<div class="sat-dot" style="background:' + sat.color + '; box-shadow: 0 0 8px ' + sat.color + ', 0 0 16px ' + sat.color + '"></div><div class="sat-label" style="border-left: 2px solid ' + sat.color + '">' + sat.name + '</div>',
       iconSize: L.point(10, 10),
       iconAnchor: L.point(5, 5)
     });
 
     const initialX = i * 600 + 200; 
+    var initialPoint = new Array();
+    initialPoint.push(540);
+    initialPoint.push(initialX);
 
     return {
-      ...sat,
+      name: sat.name,
+      color: sat.color,
+      speed: sat.speed,
       x: initialX,
       y: 540, 
-      marker: L.marker(L.latLng(540, initialX), { icon }).addTo(map)
+      marker: L.marker(initialPoint, { icon: icon }).addTo(map)
     };
   });
 
   // ======================
   // THUẬT TOÁN QUỸ ĐẠO CHẠY QUANH BẢN ĐỒ PHẲNG
   // ======================
-  setInterval(() => {
-    satObjects.forEach(sat => {
+  setInterval(function() {
+    satObjects.forEach(function(sat) {
       sat.x += sat.speed;
-      // Tạo quỹ đạo hình sin uốn lượn chạy ngang màn hình ảnh
       sat.y = 540 + (200 * Math.sin(sat.x * Math.PI / 400));
 
-      // Reset khi bay hết mép phải của ảnh map.webp
       if (sat.x > 2000) {
         sat.x = 0;
       }
 
-      sat.marker.setLatLng(L.latLng(sat.y, sat.x));
+      var nextPoint = new Array();
+      nextPoint.push(sat.y);
+      nextPoint.push(sat.x);
+
+      sat.marker.setLatLng(nextPoint);
     });
   }, 50);
 
   // ======================
-  // TELEMETRY REAL-TIME DATA (Giữ nguyên logic cũ của bạn)
+  // TELEMETRY REAL-TIME DATA
   // ======================
   function random(min, max) {
     return (Math.random() * (max - min) + min).toFixed(2);
@@ -111,14 +121,14 @@ function runDashboard() {
     const signal = random(70, 100);
 
     const speedEl = document.querySelector(".speed");
-    if (speedEl) speedEl.innerText = `${speed} Mbps`;
+    if (speedEl) speedEl.innerText = speed + " Mbps";
 
     const randomSat = satObjects[Math.floor(Math.random() * satObjects.length)];
     const log = document.querySelector(".log");
     if (!log) return;
     const time = new Date().toLocaleTimeString();
 
-    const msg = `[${time}] [${randomSat.name}] Downlink: ${speed} Mbps | Nhiên liệu: ${fuel}% | Tín hiệu: ${signal}%`;
+    const msg = "[" + time + "] [" + randomSat.name + "] Downlink: " + speed + " Mbps | Nhiên liệu: " + fuel + "% | Tín hiệu: " + signal + "%";
     const div = document.createElement("div");
     div.className = "log-item";
     div.innerText = msg;
