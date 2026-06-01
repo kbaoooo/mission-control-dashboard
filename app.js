@@ -16,10 +16,16 @@ function runDashboard() {
     attributionControl: false
   }).setView([16.0, 108.0], 3);
 
-  // Đường dẫn chuẩn kéo bản đồ nền xám tối
+    // Đường dẫn chuẩn kéo bản đồ nền xám tối
   L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
     maxZoom: 19
   }).addTo(map);
+
+  // ĐÃ SỬA: Ép bản đồ tự động vẽ lại sau 100ms, 500ms và 1000ms để chống lỗi sập giao diện
+  setTimeout(() => { map.invalidateSize(); }, 100);
+  setTimeout(() => { map.invalidateSize(); }, 500);
+  setTimeout(() => { map.invalidateSize(); }, 1000);
+
 
   // Ép Leaflet tính toán lại kích thước khung chứa
   setTimeout(() => {
