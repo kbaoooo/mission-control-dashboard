@@ -209,5 +209,8 @@ body {
   height: calc(100% - 200px); /* Đảm bảo trừ đi 200px của khung log */
   min-height: 300px; /* Chiều cao tối thiểu bắt buộc để Leaflet không bị sập */
   background: #0d1117;
+  position: relative;
 }
+
+
 
