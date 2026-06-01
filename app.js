@@ -18,10 +18,13 @@ function runDashboard() {
 
   // ĐÃ SỬA CHUẨN: Thay thế đường dẫn lỗi bằng Map Tiles tối của CartoDB
  
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    maxZoom: 19
+   
+    // ĐÃ SỬA CỐ ĐỊNH URL: Loại bỏ {s} để tránh trình duyệt dịch sai cấu trúc link
+  L.tileLayer('https://cartocdn.com{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    maxZoom: 20
   }).addTo(map);
+
 
 
   // ĐÃ SỬA: Ép bản đồ tự động vẽ lại sau 200ms để chống lỗi sập giao diện Flexbox
