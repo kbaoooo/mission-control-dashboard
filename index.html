@@ -2,21 +2,23 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>VinSpace SatOps</title>
+  <title>VinSpace SatOps - Mission Control</title>
 
-  <!-- FONT (Đã sửa link Google Fonts chuẩn) -->
+  <!-- FONT INTER CHUẨN GOOGLE FONTS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://gstatic.com" crossorigin>
   <link href="https://googleapis.com" rel="stylesheet">
   
-  <!-- LEAFLET CSS (Đã sửa từ file offline sang CDN) -->
+  <!-- LEAFLET CSS CHUẨN CDN -->
   <link rel="stylesheet" href="https://unpkg.com" />
 
-  <!-- STYLE -->
+  <!-- STYLE LOCAL -->
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <header class="header">
-  <div class="logo">▲ VINSPACE</div>
+  <div class="logo">▲ VINSPACE MISSION CONTROL</div>
   <div class="status">🟢 TRẠM ĐÀ NẴNG GS-1: KẾT NỐI ỔN ĐỊNH</div>
 </header>
 
@@ -24,31 +26,31 @@
   <div class="left-panel">
     <div class="card">
       <h3>TRẠNG THÁI HỆ THỐNG</h3>
-      <div class="circle">52%</div>
+      <div class="circle">100%</div>
       <div class="stats">
-        <div>Vệ tinh quỹ đạo: 02/02</div>
-        <div class="green">HOẠT ĐỘNG</div>
-        <div class="warning">Cảnh báo lỗi: 02</div>
+        <div>Vệ tinh quỹ đạo: 03/03</div>
+        <div class="green">HOẠT ĐỘNG TỐT</div>
+        <div class="warning">Cảnh báo lỗi: 00</div>
       </div>
     </div>
 
     <div class="card">
       <h3>TRẠM MẶT ĐẤT (GS-1)</h3>
-      <div class="green">ĐANG PHÁT</div>
-      <div>Tx 14.25 GHz | 45W</div>
-      <div class="speed">145.0 Mbps</div>
+      <div class="green">ĐANG PHÁT (DOWNLINK)</div>
+      <div style="margin: 5px 0; color: #9ca3af;">Tx 14.25 GHz | Power: 45W</div>
+      <div class="speed">--- Mbps</div>
     </div>
   </div>
 
   <div class="main-panel">
     <div id="map"></div>
     <div class="log">
-      <div>[SYSTEM] Init Dashboard...</div>
+      <div class="log-item" style="color: #3b82f6;">[SYSTEM] Khởi tạo Trạm kiểm soát không gian VinSpace...</div>
     </div>
   </div>
 </div>
 
-<!-- LEAFLET JS (Đã sửa từ file offline sang CDN nằm trên app.js) -->
+<!-- LEAFLET JS CHUẨN CDN -->
 <script src="https://unpkg.com"></script>
 <!-- APP JS -->
 <script src="app.js"></script>
