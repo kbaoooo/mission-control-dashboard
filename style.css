@@ -202,3 +202,12 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.3);
 }
 
+/* ĐÃ SỬA CHUẨN: Giữ cố định kích thước bản đồ, không bị khung log đẩy mất */
+#map {
+  flex: 1 1 auto; /* Tự động chiếm toàn bộ không gian còn lại */
+  width: 100%;
+  height: calc(100% - 200px); /* Đảm bảo trừ đi 200px của khung log */
+  min-height: 300px; /* Chiều cao tối thiểu bắt buộc để Leaflet không bị sập */
+  background: #0d1117;
+}
+
