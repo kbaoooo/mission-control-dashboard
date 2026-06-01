@@ -8,45 +8,29 @@ const initWhenReady = setInterval(() => {
 
 function runDashboard() {
   // ======================
-  // INIT MAP
+  // INIT MAP (Chuyển sang hệ tọa độ phẳng đơn giản để dùng ảnh cục bộ)
   // ======================
   const map = L.map('map', {
     zoomControl: true,
-    attributionControl: false
-  }).setView([16.0, 108.0], 4);
-
-  // ======================
-  // ĐA LỚP BẢN ĐỒ (ĐƯỜNG DẪN CỐ ĐỊNH - KHÔNG LO LỖI SUBDOMAIN)
-  // ======================
-  // 1. Bản đồ nền tối CartoDB chuẩn không dùng biến {s}
-  const cartoDark = L.tileLayer('https://cartocdn.com{z}/{x}/{y}.png', {
-    maxZoom: 20
+    attributionControl: false,
+    crs: L.CRS.Simple, // Bắt buộc để dùng 1 file ảnh duy nhất không cần chia nhỏ mảnh
+    minZoom: -2,
+    maxZoom: 2
   });
 
-  // 2. Bản đồ Vệ tinh Google Map chuẩn không dùng biến {s}
-  const googleSatellite = L.tileLayer('https://google.com{x}&y={y}&z={z}', {
-    maxZoom: 20
-  });
-
-  // Mặc định hiển thị bản đồ nền tối khi tải trang
-  cartoDark.addTo(map);
-
-  // Gắn menu chọn lớp ở góc trên bên phải bản đồ
-  const baseMaps = {
-    "🌌 Bản đồ Tối (CartoDB)": cartoDark,
-    "🛰️ Vệ tinh Đậm nét (Google)": googleSatellite
-  };
-  L.control.layers(baseMaps, null, { position: 'topright' }).addTo(map);
-
-  // Ép bản đồ tự động vẽ lại sau 200ms để chống lỗi khuất giao diện Flexbox
-  setTimeout(() => { 
-    map.invalidateSize(); 
-  }, 200);
+  // Kích thước giả lập cho bản đồ phẳng (Căn theo tỉ lệ ảnh map.webp của bạn)
+  const bounds = [[0, 0], [1000, 2000]]; 
 
   // ======================
-  // TRẠM MẶT ĐẤT ĐÀ NẴNG
+  // SỬ DỤNG HÌNH ẢNH MAP.WEBP TỪ REPO CỦA BẠN
   // ======================
-  const danangCoords = [16.047, 108.206];
+  const localMap = L.imageOverlay('map.webp', bounds).addTo(map);
+  map.fitBounds(bounds); // Tự động căn bản đồ vừa khít khung hiển thị
+
+  // ======================
+  // TRẠM MẶT ĐẤT ĐÀ NẴNG (Chuyển đổi sang tọa độ phẳng tương đối trên ảnh)
+  // ======================
+  const danangCoords =; // Tọa độ X, Y tương ứng với vị trí Việt Nam trên ảnh nền xám
   
   const groundStationIcon = L.divIcon({
     className: 'gs-icon',
@@ -55,7 +39,7 @@ function runDashboard() {
       <div class="gs-dot"></div>
       <div class="gs-label">GS-1 DANANG</div>
     `,
-    iconSize: [20, 20],
+    iconSize:,
     iconAnchor: [10, 10]
   });
   
@@ -65,9 +49,9 @@ function runDashboard() {
   // SATELLITE DATA
   // ======================
   const satellites = [
-    { name: "VINSAT-NANO-1", color: "#10b981", speed: 1.2 }, 
-    { name: "VINSAT-NANO-2", color: "#ef4444", speed: 1.5 }, 
-    { name: "VINSAT-NANO-3", color: "#06b6d4", speed: 1.0 }  
+    { name: "VINSAT-NANO-1", color: "#10b981", speed: 4 },  // Tăng speed do hệ tọa độ mới lớn hơn
+    { name: "VINSAT-NANO-2", color: "#ef4444", speed: 6 }, 
+    { name: "VINSAT-NANO-3", color: "#06b6d4", speed: 3 }  
   ];
 
   // ======================
@@ -80,38 +64,41 @@ function runDashboard() {
         <div class="sat-dot" style="background:${sat.color}; box-shadow: 0 0 8px ${sat.color}, 0 0 16px ${sat.color}"></div>
         <div class="sat-label" style="border-left: 2px solid ${sat.color}">${sat.name}</div>
       `,
-      iconSize: [10, 10],
+      iconSize:,
       iconAnchor: [5, 5]
     });
 
-    const initialLng = i * 120 - 180; 
+    // Điểm xuất phát trải dài trên chiều rộng trục X của ảnh (0 đến 2000)
+    const initialX = i * 600 + 200; 
 
     return {
       ...sat,
-      lat: 16.0, 
-      lng: initialLng,
-      marker: L.marker([16.0, initialLng], { icon }).addTo(map)
+      x: initialX,
+      y: 500, 
+      marker: L.marker([500, initialX], { icon }).addTo(map)
     };
   });
 
   // ======================
-  // THUẬT TOÁN QUỸ ĐẠO QUÉT QUA VIỆT NAM
+  // THUẬT TOÁN QUỸ ĐẠO CHẠY QUANH BẢN ĐỒ PHẲNG
   // ======================
   setInterval(() => {
     satObjects.forEach(sat => {
-      sat.lng += sat.speed;
-      sat.lat = 16.5 + (12 * Math.sin(sat.lng * Math.PI / 90));
+      sat.x += sat.speed;
+      // Tạo quỹ đạo hình sin uốn lượn chạy ngang màn hình ảnh
+      sat.y = 500 + (250 * Math.sin(sat.x * Math.PI / 400));
 
-      if (sat.lng > 180) {
-        sat.lng = -180;
+      // Reset khi bay hết mép phải của ảnh map.webp
+      if (sat.x > 2000) {
+        sat.x = 0;
       }
 
-      sat.marker.setLatLng([sat.lat, sat.lng]);
+      sat.marker.setLatLng([sat.y, sat.x]);
     });
-  }, 100);
+  }, 50);
 
   // ======================
-  // TELEMETRY REAL-TIME DATA
+  // TELEMETRY REAL-TIME DATA (Giữ nguyên logic của bạn)
   // ======================
   function random(min, max) {
     return (Math.random() * (max - min) + min).toFixed(2);
@@ -127,6 +114,7 @@ function runDashboard() {
 
     const randomSat = satObjects[Math.floor(Math.random() * satObjects.length)];
     const log = document.querySelector(".log");
+    if (!log) return;
     const time = new Date().toLocaleTimeString();
 
     const msg = `[${time}] [${randomSat.name}] Downlink: ${speed} Mbps | Nhiên liệu: ${fuel}% | Tín hiệu: ${signal}%`;
