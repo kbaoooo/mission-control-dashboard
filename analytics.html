@@ -232,6 +232,10 @@ const tempChart = new Chart(
   }
 );
 
+// preload dữ liệu 1 ngày
+generateHistory(batteryChart, 2.5, 5);
+generateHistory(tempChart, 30, 80);
+
 // =======================
 // NOISY DATA (GIỐNG ẢNH)
 // =======================
