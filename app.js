@@ -18,8 +18,10 @@ function runDashboard() {
     maxZoom: 2
   });
 
-  // Định vị khung đồ họa chuẩn tỉ lệ ảnh 1000 x 2000 trục [Y, X]
-  const bounds = [[0, 0], [1000, 2000]]; 
+  // Định vị khung đồ họa chuẩn trục [Y, X] cho ảnh tỉ lệ 2000x1000
+  const southWest = L.latLng(0, 0);
+  const northEast = L.latLng(1000, 2000);
+  const bounds = L.latLngBounds(southWest, northEast);
 
   // ======================
   // SỬ DỤNG HÌNH ẢNH MAP.WEBP TỪ REPO CỦA BẠN
@@ -30,7 +32,7 @@ function runDashboard() {
   // ======================
   // TRẠM MẶT ĐẤT ĐÀ NẴNG (Tọa độ trục [Y, X] tương đối trên ảnh)
   // ======================
-  const danangCoords =; 
+  const danangCoords = L.latLng(540, 1600); 
   
   const groundStationIcon = L.divIcon({
     className: 'gs-icon',
@@ -39,8 +41,8 @@ function runDashboard() {
       <div class="gs-dot"></div>
       <div class="gs-label">GS-1 DANANG</div>
     `,
-    iconSize:,
-    iconAnchor: [10, 10]
+    iconSize: L.point(20, 20),
+    iconAnchor: L.point(10, 10)
   });
   
   L.marker(danangCoords, { icon: groundStationIcon }).addTo(map);
@@ -64,8 +66,8 @@ function runDashboard() {
         <div class="sat-dot" style="background:${sat.color}; box-shadow: 0 0 8px ${sat.color}, 0 0 16px ${sat.color}"></div>
         <div class="sat-label" style="border-left: 2px solid ${sat.color}">${sat.name}</div>
       `,
-      iconSize:,
-      iconAnchor: [5, 5]
+      iconSize: L.point(10, 10),
+      iconAnchor: L.point(5, 5)
     });
 
     const initialX = i * 600 + 200; 
@@ -74,7 +76,7 @@ function runDashboard() {
       ...sat,
       x: initialX,
       y: 540, 
-      marker: L.marker([540, initialX], { icon }).addTo(map)
+      marker: L.marker(L.latLng(540, initialX), { icon }).addTo(map)
     };
   });
 
@@ -92,7 +94,7 @@ function runDashboard() {
         sat.x = 0;
       }
 
-      sat.marker.setLatLng([sat.y, sat.x]);
+      sat.marker.setLatLng(L.latLng(sat.y, sat.x));
     });
   }, 50);
 
