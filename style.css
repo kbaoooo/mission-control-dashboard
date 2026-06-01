@@ -150,3 +150,55 @@ body {
   border: 1px solid rgba(255,255,255,0.15);
   display: block !important;
 }
+
+
+/* ICON TRẠM MẶT ĐẤT ĐÀ NẴNG */
+.gs-icon {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: transparent !important;
+  border: none !important;
+}
+
+.gs-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #f59e0b;
+  border-radius: 50%;
+  z-index: 2;
+  box-shadow: 0 0 8px #f59e0b;
+}
+
+/* Hiệu ứng radar phát sóng từ trạm mặt đất */
+.gs-pulse {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #f59e0b;
+  border-radius: 50%;
+  animation: gspulse 2s infinite linear;
+  opacity: 0;
+  z-index: 1;
+}
+
+@keyframes gspulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { opacity: 0.6; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+.gs-label {
+  position: absolute;
+  top: -20px;
+  font-size: 9px;
+  font-weight: bold;
+  color: #f59e0b;
+  font-family: monospace;
+  white-space: nowrap;
+  background: rgba(11, 15, 25, 0.8);
+  padding: 1px 4px;
+  border-radius: 3px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
