@@ -212,5 +212,29 @@ body {
   position: relative;
 }
 
+/* MENU ĐIỀU HƯỚNG */
+    .nav-tabs {
+      display: flex;
+      gap: 10px;
+    }
+    .nav-link {
+      color: #9ca3af;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 4px;
+      border: 1px solid transparent;
+    }
+    .nav-link.active {
+      color: #3b82f6;
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.3);
+    }
+    .nav-link:hover:not(.active) {
+      color: #fff;
+      background: #1f2937;
+    }
+
 
 
