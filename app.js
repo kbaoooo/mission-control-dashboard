@@ -16,11 +16,13 @@ function runDashboard() {
     attributionControl: false
   }).setView([16.0, 108.0], 3);
 
+// BẮT BUỘC PHẢI CÓ: Thêm layer bản đồ tối
+L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors &copy; <a href="https://carto.com">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 20
+}).addTo(map);
 
-  // THAY THẾ CHÍNH XÁC ĐOẠN NÀY ĐỂ HẾT LỖI ERR_NAME_NOT_RESOLVED:
-  L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
-    maxZoom: 19
-  }).addTo(map);
 
 
   // ĐÃ SỬA: Ép bản đồ tự động vẽ lại sau 100ms, 500ms và 1000ms để chống lỗi sập giao diện
