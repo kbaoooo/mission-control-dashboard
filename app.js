@@ -41,8 +41,9 @@ function runDashboard() {
   // SỬ DỤNG HÌNH ẢNH MAP.WEBP TỪ REPO CỦA BẠN
   // ======================
   L.imageOverlay('map.webp', nativeBounds).addTo(map);
-  map.fitBounds(nativeBounds); // Tự động kéo giãn ảnh vừa khít màn hình hiển thị
+  // map.fitBounds(nativeBounds); // Tự động kéo giãn ảnh vừa khít màn hình hiển thị
   // map.setView(L.latLng(500, 1000), 0); 
+  map.setView(L.latLng(500, 1000), -1); 
   
   // ======================
   // TRẠM MẶT ĐẤT ĐÀ NẴNG
