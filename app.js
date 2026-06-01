@@ -10,22 +10,39 @@ function runDashboard() {
   // ======================
   // INIT MAP
   // ======================
-  // ĐÃ SỬA: Điền tọa độ khởi tạo hợp lệ [15, 0] tránh lỗi biên bản đồ
+  // Đã sửa: Đặt tâm bản đồ ngay tại khu vực Đông Nam Á để nhìn rõ Việt Nam
   const map = L.map('map', {
     zoomControl: true,
     attributionControl: false
-  }).setView([15, 0], 2);
+  }).setView([16.0, 108.0], 3);
 
-  // ĐÃ SỬA: Đường dẫn chuẩn không bị rách link ảnh
+  // Đường dẫn chuẩn kéo bản đồ nền xám tối
   L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
     maxZoom: 19
   }).addTo(map);
 
-
-  // Ép Leaflet tính toán lại kích thước khung chứa ngay khi render xong
+  // Ép Leaflet tính toán lại kích thước khung chứa
   setTimeout(() => {
     map.invalidateSize();
   }, 200);
+
+  // ======================
+  // ĐÃ THÊM: TRẠM MẶT ĐẤT ĐÀ NẴNG
+  // ======================
+  const danangCoords = [16.047, 108.206]; // Tọa độ thực tế Đà Nẵng
+  
+  const groundStationIcon = L.divIcon({
+    className: 'gs-icon',
+    html: `
+      <div class="gs-pulse"></div>
+      <div class="gs-dot"></div>
+      <div class="gs-label">GS-1 DANANG</div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+  });
+  
+  L.marker(danangCoords, { icon: groundStationIcon }).addTo(map);
 
   // ======================
   // SATELLITE DATA
@@ -50,23 +67,32 @@ function runDashboard() {
       iconAnchor: [5, 5]
     });
 
+    // Phát tán vị trí ban đầu lệch nhau trên quỹ đạo vòng quanh Trái Đất
     const initialLng = i * 120 - 180; 
 
     return {
       ...sat,
-      lat: 0,
+      lat: 16.0, // Bắt đầu ở vĩ độ Đà Nẵng
       lng: initialLng,
-      marker: L.marker([0, initialLng], { icon }).addTo(map)
+      marker: L.marker([16.0, initialLng], { icon }).addTo(map)
     };
   });
 
   // ======================
-  // ORBIT SIMULATION
+  // THUẬT TOÁN QUỸ ĐẠO QUÉT QUA VIỆT NAM (ĐÃ SỬA)
   // ======================
   setInterval(() => {
     satObjects.forEach(sat => {
       sat.lng += sat.speed;
-      sat.lat = 45 * Math.sin(sat.lng * Math.PI / 180);
+      
+      /* 
+        TỐI ƯU QUỸ ĐẠO: 
+        - Lấy vĩ độ 16.5 làm trục tâm (độ cao của Việt Nam).
+        - Biên độ hình sin thu hẹp còn 12 độ để vệ tinh dao động liên tục 
+          trong khoảng từ vĩ độ 4.5 (Nam Bộ) đến vĩ độ 28.5 (Bắc Bộ).
+        - Khi kinh độ (lng) quét qua vùng 102 đến 110, vệ tinh CHẮC CHẮN cắt thẳng qua Việt Nam.
+      */
+      sat.lat = 16.5 + (12 * Math.sin(sat.lng * Math.PI / 90));
 
       if (sat.lng > 180) {
         sat.lng = -180;
