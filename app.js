@@ -52,7 +52,10 @@ function runDashboard() {
   // ======================
   // TRẠM MẶT ĐẤT VINUNIVERSITY (HÀ NỘI) - Căn chỉnh tọa độ vàng chuẩn xác
   // ======================
-  const targetY = 585; 
+    // ======================
+  // TRẠM MẶT ĐẤT VINUNIVERSITY (HÀ NỘI) - Đã dịch xuống thấp một chút cho chuẩn vị trí
+  // ======================
+  const targetY = 565; // Đã hạ từ 585 xuống 565
   const targetX = 1555;
   var stationPoint = new Array();
   stationPoint.push(targetY); 
@@ -66,6 +69,7 @@ function runDashboard() {
   });
   
   L.marker(stationPoint, { icon: groundStationIcon }).addTo(map);
+
 
   // ======================
   // SATELLITE DATA (MẠNG NHỆN ĐA HƯỚNG - RANDOM MÀU)
