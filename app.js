@@ -14,6 +14,7 @@ function runDashboard() {
     zoomControl: true,
     attributionControl: false,
     crs: L.CRS.Simple,
+    zoomSnap: 0.1,  
     minZoom: -2,
     maxZoom: 3,
     // bounceAtZoomLimits: false, // Ngăn việc kéo bản đồ ra ngoài ranh giới ảnh
