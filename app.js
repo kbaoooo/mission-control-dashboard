@@ -1,21 +1,24 @@
-// Hàm kiểm tra tự động: Chờ cho đến khi thư viện Leaflet (L) được nạp xong mới chạy code
+// Chờ thư viện Leaflet (L) nạp xong
 const initWhenReady = setInterval(() => {
   if (typeof L !== 'undefined') {
     clearInterval(initWhenReady);
-    runDashboard(); // Kích hoạt hệ thống
+    runDashboard(); 
   }
-}, 50); // Kiểm tra liên tục mỗi 50 mili giây
+}, 50);
 
 function runDashboard() {
   // ======================
   // INIT MAP
   // ======================
   const map = L.map('map', {
-    zoomControl: false
-  }).setView([20, 0], 2);
+    zoomControl: true,
+    attributionControl: false
+  }).setView([15, 0], 2);
 
-  // ĐÃ SỬA: Đường dẫn tile layer chuẩn cho bản đồ tối dark-mode
-  L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png').addTo(map);
+  // ĐÃ SỬA: Đường dẫn CartoDB Dark Matter chuẩn cho giao diện Sci-Fi ngầu
+  L.tileLayer('https://{s}://{z}/{x}/{y}{r}.png', {
+    maxZoom: 19
+  }).addTo(map);
 
   // ======================
   // SATELLITE DATA
@@ -30,21 +33,25 @@ function runDashboard() {
   // CREATE SATELLITES
   // ======================
   const satObjects = satellites.map((sat, i) => {
+    // Tạo custom icon bằng DivIcon
     const icon = L.divIcon({
-      className: 'satellite-icon',
+      className: 'satellite-custom-icon', // Đổi tên class tránh trùng lặp mặc định
       html: `
-        <div class="sat-dot" style="background:${sat.color}; color:${sat.color}"></div>
+        <div class="sat-dot" style="background:${sat.color}; box-shadow: 0 0 8px ${sat.color}, 0 0 16px ${sat.color}"></div>
         <div class="sat-label" style="border-left: 2px solid ${sat.color}">${sat.name}</div>
       `,
       iconSize: [10, 10],
       iconAnchor: [5, 5]
     });
 
+    // Phát tán vị trí ban đầu cho các vệ tinh lệch nhau ra
+    const initialLng = i * 120 - 180; 
+
     return {
       ...sat,
       lat: 0,
-      lng: i * 60,
-      marker: L.marker([0, i * 60], { icon }).addTo(map)
+      lng: initialLng,
+      marker: L.marker([0, initialLng], { icon }).addTo(map)
     };
   });
 
@@ -54,16 +61,20 @@ function runDashboard() {
   setInterval(() => {
     satObjects.forEach(sat => {
       sat.lng += sat.speed;
-      sat.lat = 20 * Math.sin(sat.lng * Math.PI / 180);
+      // Tạo quỹ đạo hình sin giả lập bay vòng quanh Trái Đất
+      sat.lat = 45 * Math.sin(sat.lng * Math.PI / 180);
 
-      if (sat.lng > 180) sat.lng = -180;
+      // Reset kinh độ nếu vượt quá 180 độ (Bản đồ lặp lại)
+      if (sat.lng > 180) {
+        sat.lng = -180;
+      }
 
       sat.marker.setLatLng([sat.lat, sat.lng]);
     });
   }, 100);
 
   // ======================
-  // TELEMETRY RANDOM DATA
+  // TELEMETRY REAL-TIME DATA
   // ======================
   function random(min, max) {
     return (Math.random() * (max - min) + min).toFixed(2);
@@ -74,30 +85,37 @@ function runDashboard() {
     const fuel = random(40, 90);
     const signal = random(70, 100);
 
-    document.querySelector(".speed").innerText = `${speed} Mbps`;
+    // Cập nhật số Mbps trực tiếp lên màn hình panel trái
+    const speedEl = document.querySelector(".speed");
+    if (speedEl) speedEl.innerText = `${speed} Mbps`;
 
+    // Sinh log real-time ngẫu nhiên theo tên từng vệ tinh
+    const randomSat = satObjects[Math.floor(Math.random() * satObjects.length)];
     const log = document.querySelector(".log");
     const time = new Date().toLocaleTimeString();
 
-    const msg = `[${time}] [TELEMETRY] Downlink: ${speed} Mbps | Fuel: ${fuel}% | Signal: ${signal}%`;
+    const msg = `[${time}] [${randomSat.name}] Downlink: ${speed} Mbps | Nhiên liệu: ${fuel}% | Tín hiệu: ${signal}%`;
     const div = document.createElement("div");
     div.className = "log-item";
     div.innerText = msg;
 
+    // Đổi màu chữ theo trạng thái để cảnh báo trực quan
     if (signal < 75) {
-      div.style.color = "#ef4444"; 
+      div.style.color = "#ef4444"; // Đỏ khi tín hiệu yếu
     } else if (speed > 160) {
-      div.style.color = "#10b981"; 
+      div.style.color = "#10b981"; // Xanh lá khi truyền tải siêu nhanh
     } else {
-      div.style.color = "#3b82f6"; 
+      div.style.color = "#3b82f6"; // Xanh dương trạng thái bình thường
     }
 
     log.prepend(div);
 
+    // Giữ log tối đa 20 dòng để tránh lag trình duyệt
     if (log.children.length > 20) {
       log.removeChild(log.lastChild);
     }
   }
 
-  setInterval(updateTelemetry, 2000);
+  // Chạy dữ liệu telemetry liên tục mỗi 1.5 giây
+  setInterval(updateTelemetry, 1500);
 }
