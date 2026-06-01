@@ -8,7 +8,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
 
-
   <!-- STYLE LOCAL -->
   <link rel="stylesheet" href="style.css">
 </head>
@@ -46,18 +45,18 @@
   </div>
 
   <div class="main-panel">
-    <div id="map"></div>
+    <!-- Khu vực hiển thị bản đồ cục bộ map.webp -->
+    <div id="map" style="background: #1a1a1a;"></div>
     <div class="log">
-      <div class="log-item" style="color: #3b82f6;">[SYSTEM] Khởi tạo Trạm kiểm soát không gian VinSpace...</div>
+      <div class="log-item" style="color: #3b82f6;">[SYSTEM] Khởi tạo Trạm kiểm soát không gian VinSpace thành công...</div>
     </div>
   </div>
 </div>
 
   <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- APP JS -->
-<script src="app.js?v=4"></script>
-
+<!-- APP JS (Đảm bảo file app.js nằm cùng thư mục với file map.webp) -->
+<script src="app.js?v=5"></script>
 
 </body>
 </html>
