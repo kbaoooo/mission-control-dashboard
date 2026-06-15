@@ -143,6 +143,26 @@ function runDashboard() {
     interactive: false
   }).addTo(map);
   var lastShadowSecondBucket = '';
+  const urlParams = new URLSearchParams(window.location.search);
+  const demoHourValue = Number(urlParams.get('demoHour'));
+  const demoMinuteValue = Number(urlParams.get('demoMinute') || 0);
+  const isDemoShadowTime =
+    Number.isFinite(demoHourValue) &&
+    demoHourValue >= 0 &&
+    demoHourValue <= 23;
+
+  function getShadowDate() {
+    if (!isDemoShadowTime) return new Date();
+
+    const demoDate = new Date();
+    demoDate.setHours(
+      demoHourValue,
+      Number.isFinite(demoMinuteValue) ? demoMinuteValue : 0,
+      0,
+      0
+    );
+    return demoDate;
+  }
 
   function renderNightShadow(date) {
     const secondBucket = Math.floor(date.getTime() / 5000).toString();
@@ -213,20 +233,20 @@ function runDashboard() {
   timeControl.addTo(map);
 
   function updateTimeAndShadow() {
-    const now = new Date();
+    const shadowDate = getShadowDate();
     const timeEl = document.querySelector('.time-control');
     if (timeEl) {
       timeEl.innerHTML =
-        '<div>LOCAL ' + now.toLocaleTimeString() + '</div>' +
-        '<div>UTC ' + now.toISOString().slice(11, 19) + '</div>';
+        '<div>' + (isDemoShadowTime ? 'DEMO ' : '') + 'LOCAL ' + shadowDate.toLocaleTimeString() + '</div>' +
+        '<div>UTC ' + shadowDate.toISOString().slice(11, 19) + '</div>';
     }
-    renderNightShadow(now);
+    renderNightShadow(shadowDate);
   }
 
   updateTimeAndShadow();
   setInterval(updateTimeAndShadow, 1000);
   map.on('zoom move resize viewreset', function() {
-    renderNightShadow(new Date());
+    renderNightShadow(getShadowDate());
   });
 
   function makeLaunchOrbit(name, altitudeKm, inclinationDeg, launchLatDeg, launchLonDeg, alongTrackOffsetDeg) {
