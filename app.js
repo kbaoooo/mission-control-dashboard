@@ -1,18 +1,10 @@
 // Chờ thư viện Leaflet (L) nạp xong
 const initWhenReady = setInterval(function() {
   if (typeof L !== 'undefined') {
-    clearInterval(initReadyMap()); 
+    clearInterval(initWhenReady);
+    runDashboard();
   }
 }, 50);
-
-function clearInterval(cb) {} // Hàm bổ trợ tránh trùng lặp hệ thống
-
-const initReadyMap = function() {
-  if (typeof L !== 'undefined') {
-    clearInterval(initWhenReady);
-    runDashboard(); 
-  }
-};
 
 function runDashboard() {
   // ======================
@@ -46,57 +38,356 @@ function runDashboard() {
   // ======================
   // SỬ DỤNG HÌNH ẢNH MAP.WEBP TỪ REPO CỦA BẠN
   // ======================
-  L.imageOverlay('map.webp', nativeBounds).addTo(map);
-  map.setView(L.latLng(585, 1555), -0.5); // Tập trung góc nhìn ban đầu ngay gần Việt Nam
+  L.imageOverlay('map.webp', nativeBounds, { pane: 'tilePane' }).addTo(map);
+
+  const VINUNI_LAT = 20.993;
+  const VINUNI_LON = 105.944;
+  const VINUNI_MAP_X = 1570;
+  const VINUNI_MAP_Y = 565;
+  map.setView(L.latLng(VINUNI_MAP_Y, VINUNI_MAP_X), -0.5); // Tập trung góc nhìn ban đầu ngay gần VinUniversity
   
   // ======================
-  // TRẠM MẶT ĐẤT VINUNIVERSITY (HÀ NỘI) 
+  // TRẠM MẶT ĐẤT VINUNIVERSITY
   // ======================
  
   // ======================
-  const targetY = 575; 
-  const targetX = 1555;
   var stationPoint = new Array();
-  stationPoint.push(targetY); 
-  stationPoint.push(targetX); 
+  stationPoint.push(VINUNI_MAP_Y);
+  stationPoint.push(VINUNI_MAP_X);
   
-  const groundStationIcon = L.divIcon({
-    className: 'gs-icon',
-    html: '<div class="gs-pulse"></div><div class="gs-dot"></div><div class="gs-label">GS-1 VINUNIVERSITY</div>',
-    iconSize: L.point(20, 20),
-    iconAnchor: L.point(10, 10)
-  });
+  function createGroundStationIcon(label) {
+    return L.divIcon({
+      className: 'gs-icon',
+      html: '<div class="gs-pulse"></div><div class="gs-dot"></div><div class="gs-label">' + label + '</div>',
+      iconSize: L.point(20, 20),
+      iconAnchor: L.point(10, 10)
+    });
+  }
   
-  L.marker(stationPoint, { icon: groundStationIcon }).addTo(map);
+  L.marker(stationPoint, { icon: createGroundStationIcon("GS-1 VINUNIVERSITY") }).addTo(map);
 
 
   // ======================
-  // SATELLITE DATA (MẠNG NHỆN ĐA HƯỚNG - RANDOM MÀU)
   // ======================
   const colorsList = ["#10b981", "#ef4444", "#06b6d4", "#f59e0b", "#a855f7", "#3b82f6", "#ec4899", "#14b8a6", "#f43f5e", "#0284c7"];
-  const shuffledColors = colorsList.sort(function() { return 0.5 - Math.random(); });
 
-  // Định nghĩa góc bay (độ) cho mạng nhện đan xen xuyên tâm
-  const satellites = [
-    { name: "VINSAT-1", angle: 0, speed: 5 },    // Bay ngang tuyệt đối
-    { name: "VINSAT-2", angle: 90, speed: 4 },   // Bay dọc tuyệt đối
-    { name: "VINSAT-3", angle: 30, speed: 5 },   // Chéo mạng nhện
-    { name: "VINSAT-4", angle: 60, speed: 6 },   // Chéo dốc đứng
-    { name: "VINSAT-5", angle: 120, speed: 4 },  // Chéo ngược xuôi
-    { name: "VINSAT-6", angle: 150, speed: 5 },  // Chéo là mặt đất
-    { name: "VINSAT-7", angle: -45, speed: 7 },  // Chéo góc vuông xuống
-    { name: "VINSAT-8", angle: -20, speed: 4 },  // Xiên nhẹ góc nam
-    { name: "VINSAT-9", angle: 105, speed: 6 },  // Cận dọc đứng
-    { name: "VINSAT-10", angle: 135, speed: 5 }  // Chéo góc vuông lên
+  const EARTH_RADIUS_KM = 6371;
+  const EARTH_MU = 398600.4418;
+  const EARTH_ROTATION_RAD_PER_SEC = 7.2921159e-5;
+  const TIME_SCALE = 1;
+  const orbitEpoch = Date.now();
+  const MAP_X_OFFSET = VINUNI_MAP_X - (((VINUNI_LON + 180) / 360) * 2000);
+  const MAP_Y_OFFSET = VINUNI_MAP_Y - (((VINUNI_LAT + 90) / 180) * 1000);
+
+  map.createPane('shadowPane');
+  map.getPane('shadowPane').style.zIndex = 350;
+
+  function degToRad(deg) {
+    return (deg * Math.PI) / 180;
+  }
+
+  function radToDeg(rad) {
+    return (rad * 180) / Math.PI;
+  }
+
+  function normalizeLon(lonDeg) {
+    return ((lonDeg + 540) % 360) - 180;
+  }
+
+  function geoToMapPoint(latDeg, lonDeg) {
+    const x = ((normalizeLon(lonDeg) + 180) / 360) * 2000 + MAP_X_OFFSET;
+    const y = ((latDeg + 90) / 180) * 1000 + MAP_Y_OFFSET;
+    return [y, x];
+  }
+
+  const NIGHT_SHADOW_TEMPLATE = [
+    [74, 443],
+    [74, 356],
+    [92, 373],
+    [108, 379],
+    [129, 378],
+    [142, 372],
+    [163, 351],
+    [174, 331],
+    [192, 289],
+    [203, 273],
+    [220, 257],
+    [236, 251],
+    [257, 252],
+    [265, 255],
+    [275, 262],
+    [291, 279],
+    [302, 299],
+    [320, 341],
+    [331, 357],
+    [348, 373],
+    [364, 379],
+    [380, 379],
+    [393, 375],
+    [403, 368],
+    [416, 355],
+    [430, 331],
+    [448, 289],
+    [459, 273],
+    [472, 260],
+    [480, 255],
+    [492, 251],
+    [508, 251],
+    [521, 255],
+    [531, 262],
+    [547, 279],
+    [558, 299],
+    [576, 341],
+    [586, 355],
+    [586, 443]
   ];
 
-  // ======================
-  // CREATE SATELLITES & TÍNH TOÁN BIÊN GIAO CẮT
-  // ======================
+  const NIGHT_SHADOW_VIEWBOX = {
+    width: 660,
+    height: 443
+  };
+
+  const MAP_IMAGE_SIZE = {
+    width: 1024,
+    height: 509
+  };
+
+  // Tuning parameters for night shadow mapping (adjust to match N2YO)
+  const SHADOW_Y_MULT = 2.2; // multiplier for solar declination -> vertical shift
+  const SHADOW_X_SHIFT_PX = 72;
+  const SHADOW_Y_SHIFT_PX = -72;
+  const WRAP_OFFSETS = [0];
+
+  function getDayOfYear(date) {
+    const startOfYear = Date.UTC(date.getUTCFullYear(), 0, 0);
+    const currentTime = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+    return Math.floor((currentTime - startOfYear) / 86400000);
+  }
+
+  function getUtcDecimalHours(date) {
+    return date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
+  }
+
+  function getSolarDeclination(date) {
+    const dayOfYear = getDayOfYear(date);
+    const angle = ((360 / 365) * (dayOfYear - 81)) * (Math.PI / 180);
+    return 23.44 * Math.sin(angle);
+  }
+
+  function getNoonLongitude(date) {
+    const utcHours = getUtcDecimalHours(date);
+    return normalizeLon((12 - utcHours) * 15);
+  }
+
+  function toMapPointFromImagePx(xPx, yPx) {
+    const clampedY = Math.max(0, Math.min(MAP_IMAGE_SIZE.height, yPx));
+
+    return [
+      (1 - clampedY / MAP_IMAGE_SIZE.height) * 1000,
+      (xPx / MAP_IMAGE_SIZE.width) * 2000
+    ];
+  }
+
+  // buildNightShadowPoints(date, extraXpx, extraYpx)
+  function buildNightShadowPoints(date, extraXpx = 0, extraYpx = 0) {
+    const scaleX = MAP_IMAGE_SIZE.width / NIGHT_SHADOW_VIEWBOX.width;
+    const scaleY = MAP_IMAGE_SIZE.height / NIGHT_SHADOW_VIEWBOX.height;
+    // The template is centered on local noon. Its two high lobes are the two
+    // midnight sides, so moving the noon meridian moves the whole N2YO-like band.
+    const noonLon = getNoonLongitude(date);
+    const noonX = ((noonLon + 180) / 360) * MAP_IMAGE_SIZE.width;
+    const xOffset = noonX - (MAP_IMAGE_SIZE.width * 0.5) + SHADOW_X_SHIFT_PX + extraXpx;
+    const yOffset = -getSolarDeclination(date) * SHADOW_Y_MULT + SHADOW_Y_SHIFT_PX + extraYpx;
+
+    const points = NIGHT_SHADOW_TEMPLATE.map(function(point) {
+      const x = (point[0] * scaleX) + xOffset;
+      const y = (point[1] * scaleY) + yOffset;
+      return toMapPointFromImagePx(x, y);
+    });
+
+    return points;
+  }
+
+  const nightShadowGroup = L.layerGroup().addTo(map);
+
+  function renderNightShadow(date) {
+    nightShadowGroup.clearLayers();
+
+    WRAP_OFFSETS.forEach(function(off) {
+      const basePoints = buildNightShadowPoints(date, off, 0);
+
+      L.polygon(basePoints, {
+        pane: 'shadowPane',
+        color: 'transparent',
+        fillColor: '#111827',
+        fillOpacity: 0.26,
+        interactive: false
+      }).addTo(nightShadowGroup);
+    });
+  }
+
+  const timeGridLines = [];
+  for (var gridLon = -150; gridLon <= 150; gridLon += 30) {
+    timeGridLines.push(L.polyline([
+      geoToMapPoint(-90, gridLon),
+      geoToMapPoint(90, gridLon)
+    ], {
+      pane: 'shadowPane',
+      color: '#ffffff',
+      opacity: 0.08,
+      weight: 1,
+      interactive: false
+    }));
+  }
+  L.layerGroup(timeGridLines).addTo(map);
+
+  const timeControl = L.control({ position: 'bottomleft' });
+  timeControl.onAdd = function() {
+    const container = L.DomUtil.create('div', 'time-control');
+    L.DomEvent.disableClickPropagation(container);
+    return container;
+  };
+  timeControl.addTo(map);
+
+  function updateTimeAndShadow() {
+    const now = new Date();
+    const timeEl = document.querySelector('.time-control');
+    if (timeEl) {
+      timeEl.innerHTML =
+        '<div>LOCAL ' + now.toLocaleTimeString() + '</div>' +
+        '<div>UTC ' + now.toISOString().slice(11, 19) + '</div>';
+    }
+    renderNightShadow(now);
+  }
+
+  updateTimeAndShadow();
+  setInterval(updateTimeAndShadow, 1000);
+  map.on('zoom move resize viewreset', function() {
+    renderNightShadow(new Date());
+  });
+
+  function makeLaunchOrbit(name, altitudeKm, inclinationDeg, launchLatDeg, launchLonDeg, alongTrackOffsetDeg) {
+    const lat = degToRad(launchLatDeg);
+    const lon = degToRad(launchLonDeg);
+    const inc = degToRad(inclinationDeg);
+    const sinU = Math.max(-1, Math.min(1, Math.sin(lat) / Math.sin(inc)));
+    const u = Math.asin(sinU);
+    const inPlaneLon = Math.atan2(Math.cos(inc) * Math.sin(u), Math.cos(u));
+    const raan = lon - inPlaneLon;
+
+    return {
+      name: name,
+      altitudeKm: altitudeKm,
+      inclinationDeg: inclinationDeg,
+      raanDeg: normalizeLon(radToDeg(raan)),
+      phaseDeg: radToDeg(u) + alongTrackOffsetDeg
+    };
+  }
+
+  const satellites = [
+    makeLaunchOrbit("VINSAT-1", 430, 51.6, VINUNI_LAT, VINUNI_LON, 0),
+    makeLaunchOrbit("VINSAT-2", 470, 53.0, VINUNI_LAT, VINUNI_LON, 45),
+    makeLaunchOrbit("VINSAT-3", 520, 56.0, VINUNI_LAT, VINUNI_LON, 90),
+    makeLaunchOrbit("VINSAT-4", 560, 63.4, VINUNI_LAT, VINUNI_LON, 135),
+    makeLaunchOrbit("VINSAT-5", 610, 70.0, VINUNI_LAT, VINUNI_LON, 180),
+    makeLaunchOrbit("VINSAT-6", 450, 82.0, VINUNI_LAT, VINUNI_LON, 225),
+    makeLaunchOrbit("VINSAT-7", 540, 97.6, VINUNI_LAT, VINUNI_LON, 270),
+    makeLaunchOrbit("VINSAT-8", 590, 98.2, VINUNI_LAT, VINUNI_LON, 315)
+  ];
+
+  function getSimSeconds(timeMs) {
+    return ((timeMs - orbitEpoch) / 1000) * TIME_SCALE;
+  }
+
+  function positionAt(sat, timeMs) {
+    const a = EARTH_RADIUS_KM + sat.altitudeKm;
+    const n = Math.sqrt(EARTH_MU / Math.pow(a, 3));
+    const u = degToRad(sat.phaseDeg) + n * getSimSeconds(timeMs);
+    const inc = degToRad(sat.inclinationDeg);
+    const raan = degToRad(sat.raanDeg);
+
+    const xOrb = a * Math.cos(u);
+    const yOrb = a * Math.sin(u);
+    const cosRaan = Math.cos(raan);
+    const sinRaan = Math.sin(raan);
+    const cosInc = Math.cos(inc);
+    const sinInc = Math.sin(inc);
+
+    const xEci = cosRaan * xOrb - sinRaan * cosInc * yOrb;
+    const yEci = sinRaan * xOrb + cosRaan * cosInc * yOrb;
+    const zEci = sinInc * yOrb;
+
+    const theta = EARTH_ROTATION_RAD_PER_SEC * getSimSeconds(timeMs);
+    const cosTheta = Math.cos(theta);
+    const sinTheta = Math.sin(theta);
+    const xEcef = cosTheta * xEci + sinTheta * yEci;
+    const yEcef = -sinTheta * xEci + cosTheta * yEci;
+    const zEcef = zEci;
+
+    const lat = radToDeg(Math.atan2(zEcef, Math.sqrt(xEcef * xEcef + yEcef * yEcef)));
+    const lon = normalizeLon(radToDeg(Math.atan2(yEcef, xEcef)));
+
+    return {
+      lat: lat,
+      lon: lon,
+      mapPoint: geoToMapPoint(lat, lon)
+    };
+  }
+
+  function buildGroundTrack(sat, timeMs) {
+    const segments = [];
+    var currentSegment = [];
+
+    for (var minutes = -45; minutes <= 90; minutes += 2) {
+      const pointTime = timeMs + (minutes * 60 * 1000) / TIME_SCALE;
+      const pos = positionAt(sat, pointTime);
+
+      if (currentSegment.length > 0) {
+        const prevPoint = currentSegment[currentSegment.length - 1];
+        if (Math.abs(pos.mapPoint[1] - prevPoint[1]) > 1000) {
+          segments.push(currentSegment);
+          currentSegment = [];
+        }
+      }
+
+      currentSegment.push(pos.mapPoint);
+    }
+
+    if (currentSegment.length > 1) {
+      segments.push(currentSegment);
+    }
+
+    return segments;
+  }
+
+  function buildFootprint(pos, sat) {
+    const points = [];
+    const lat1 = degToRad(pos.lat);
+    const lon1 = degToRad(pos.lon);
+    const psi = Math.acos(EARTH_RADIUS_KM / (EARTH_RADIUS_KM + sat.altitudeKm));
+
+    for (var bearingDeg = 0; bearingDeg <= 360; bearingDeg += 8) {
+      const bearing = degToRad(bearingDeg);
+      const lat2 = Math.asin(
+        Math.sin(lat1) * Math.cos(psi) +
+        Math.cos(lat1) * Math.sin(psi) * Math.cos(bearing)
+      );
+      const lon2 = lon1 + Math.atan2(
+        Math.sin(bearing) * Math.sin(psi) * Math.cos(lat1),
+        Math.cos(psi) - Math.sin(lat1) * Math.sin(lat2)
+      );
+
+      points.push(geoToMapPoint(radToDeg(lat2), radToDeg(lon2)));
+    }
+
+    return points;
+  }
+
   const satObjects = satellites.map(function(sat, i) {
-    const clr = shuffledColors[i % shuffledColors.length];
+    const clr = colorsList[i % colorsList.length];
+    const visibleByDefault = i === 0;
+    const initialPosition = positionAt(sat, orbitEpoch);
     
-    // FIX: Sửa chuỗi HTML loại bỏ nối biến lỗi để hiển thị lại dấu chấm tròn vệ tinh sắc nét
     const icon = L.divIcon({
       className: 'satellite-custom-icon', 
       html: '<div class="sat-dot" style="background:' + clr + '; box-shadow: 0 0 10px ' + clr + '"></div><div class="sat-label" style="border-left: 2px solid ' + clr + '">' + sat.name + '</div>',
@@ -104,74 +395,90 @@ function runDashboard() {
       iconAnchor: L.point(5, 5)
     });
 
-    const rad = (sat.angle * Math.PI) / 180;
-    const cos = Math.cos(rad);
-    const sin = Math.sin(rad);
-
-    // Tính khoảng cách t tối đa từ trạm đến 4 cạnh của khung ảnh 2000x1000
-    var tValues = new Array();
-    if (Math.abs(cos) > 0.001) {
-      tValues.push((2000 - targetX) / cos);
-      tValues.push((0 - targetX) / cos);
-    }
-    if (Math.abs(sin) > 0.001) {
-      tValues.push((1000 - targetY) / sin);
-      tValues.push((0 - targetY) / sin);
-    }
-
-    // Lấy khoảng biên quỹ đạo lọt trong canvas hình chữ nhật
-    var tMax = 1500;
-    var tMin = -1500;
-    tValues.forEach(function(t) {
-      if (t > 0 && t < tMax) tMax = t;
-      if (t < 0 && t > tMin) tMin = t;
+    const track = L.polyline(buildGroundTrack(sat, orbitEpoch), {
+      color: clr,
+      weight: 2,
+      opacity: 0.75,
+      interactive: false
     });
 
-    // Trải so le các vệ tinh ngẫu nhiên trên toàn bộ chiều dài quỹ đạo
-    const startOffset = tMin + (i * ((tMax - tMin) / satellites.length));
+    const footprint = L.polygon(buildFootprint(initialPosition, sat), {
+      color: clr,
+      weight: 1,
+      opacity: 0.2,
+      fillColor: clr,
+      fillOpacity: 0.07,
+      interactive: false
+    });
 
-    const currentX = targetX + startOffset * cos;
-    const currentY = targetY + startOffset * sin;
+    const marker = L.marker(initialPosition.mapPoint, { icon: icon });
 
-    var initialPoint = new Array();
-    initialPoint.push(currentY);
-    initialPoint.push(currentX);
+    if (visibleByDefault) {
+      track.addTo(map);
+      footprint.addTo(map);
+      marker.addTo(map);
+    }
 
     return {
       name: sat.name,
       color: clr,
-      speed: sat.speed,
-      cos: cos,
-      sin: sin,
-      tMax: tMax,
-      tMin: tMin,
-      offset: startOffset, // Quản lý vị trí di chuyển tịnh tiến
-      marker: L.marker(initialPoint, { icon: icon }).addTo(map)
+      orbit: sat,
+      track: track,
+      footprint: footprint,
+      marker: marker,
+      visible: visibleByDefault
     };
   });
 
+  function setSatelliteVisible(sat, visible) {
+    sat.visible = visible;
+
+    if (visible) {
+      if (!map.hasLayer(sat.track)) sat.track.addTo(map);
+      if (!map.hasLayer(sat.footprint)) sat.footprint.addTo(map);
+      if (!map.hasLayer(sat.marker)) sat.marker.addTo(map);
+      return;
+    }
+
+    if (map.hasLayer(sat.track)) map.removeLayer(sat.track);
+    if (map.hasLayer(sat.footprint)) map.removeLayer(sat.footprint);
+    if (map.hasLayer(sat.marker)) map.removeLayer(sat.marker);
+  }
+
+  const satelliteToggleControl = L.control({ position: 'topright' });
+  satelliteToggleControl.onAdd = function() {
+    const container = L.DomUtil.create('div', 'sat-toggle-control');
+    container.innerHTML = '<div class="sat-toggle-title">SATELLITES</div>';
+
+    satObjects.forEach(function(sat) {
+      const row = L.DomUtil.create('label', 'sat-toggle-row', container);
+      row.innerHTML = '<input type="checkbox"' + (sat.visible ? ' checked' : '') + '> <span style="color:' + sat.color + '">' + sat.name + '</span>';
+      const input = row.querySelector('input');
+      input.addEventListener('change', function() {
+        setSatelliteVisible(sat, input.checked);
+      });
+    });
+
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+    return container;
+  };
+  satelliteToggleControl.addTo(map);
+
   // ======================
-  // THUẬT TOÁN QUỸ ĐẠO MẠNG NHỆN CUỐN VÒNG (PAC-MAN) CHUẨN XUYÊN TÂM
+  // THUẬT TOÁN QUỸ ĐẠO LEO TRẢI 2D KIỂU GROUND TRACK
   // ======================
   setInterval(function() {
     satObjects.forEach(function(sat) {
-      sat.offset += sat.speed; // Tiến về phía trước dọc đường thẳng
+      if (!sat.visible) return;
 
-      // CƠ CHẾ CUỐN VÒNG NGAY LẬP TỨC: Khi vượt quá giới hạn biên (tMax), lập tức nhảy về biên đối diện (tMin)
-      if (sat.offset > sat.tMax) {
-        sat.offset = sat.tMin;
-      }
-
-      const nextX = targetX + sat.offset * sat.cos;
-      const nextY = targetY + sat.offset * sat.sin;
-
-      var nextPoint = new Array();
-      nextPoint.push(nextY);
-      nextPoint.push(nextX);
-
-      sat.marker.setLatLng(nextPoint);
+      const now = Date.now();
+      const pos = positionAt(sat.orbit, now);
+      sat.marker.setLatLng(pos.mapPoint);
+      sat.track.setLatLngs(buildGroundTrack(sat.orbit, now));
+      sat.footprint.setLatLngs(buildFootprint(pos, sat.orbit));
     });
-  }, 50);
+  }, 250);
 
   // ======================
   // TELEMETRY REAL-TIME DATA
@@ -188,7 +495,8 @@ function runDashboard() {
     const speedEl = document.querySelector(".speed");
     if (speedEl) speedEl.innerText = speed + " Mbps";
 
-    const randomSat = satObjects[Math.floor(Math.random() * satObjects.length)];
+    const visibleSatObjects = satObjects.filter(function(sat) { return sat.visible; });
+    const randomSat = visibleSatObjects[Math.floor(Math.random() * visibleSatObjects.length)] || satObjects[0];
     const log = document.querySelector(".log");
     if (!log) return;
     const time = new Date().toLocaleTimeString();
