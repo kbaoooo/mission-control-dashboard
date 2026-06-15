@@ -100,63 +100,17 @@ function runDashboard() {
     return [y, x];
   }
 
-  const NIGHT_SHADOW_TEMPLATE = [
-    [74, 443],
-    [74, 356],
-    [92, 373],
-    [108, 379],
-    [129, 378],
-    [142, 372],
-    [163, 351],
-    [174, 331],
-    [192, 289],
-    [203, 273],
-    [220, 257],
-    [236, 251],
-    [257, 252],
-    [265, 255],
-    [275, 262],
-    [291, 279],
-    [302, 299],
-    [320, 341],
-    [331, 357],
-    [348, 373],
-    [364, 379],
-    [380, 379],
-    [393, 375],
-    [403, 368],
-    [416, 355],
-    [430, 331],
-    [448, 289],
-    [459, 273],
-    [472, 260],
-    [480, 255],
-    [492, 251],
-    [508, 251],
-    [521, 255],
-    [531, 262],
-    [547, 279],
-    [558, 299],
-    [576, 341],
-    [586, 355],
-    [586, 443]
-  ];
-
-  const NIGHT_SHADOW_VIEWBOX = {
-    width: 660,
-    height: 443
+  const NIGHT_SHADOW_CANVAS = {
+    width: 720,
+    height: 360
   };
-
-  const MAP_IMAGE_SIZE = {
-    width: 1024,
-    height: 509
+  const NIGHT_SHADOW_COLOR = {
+    r: 17,
+    g: 24,
+    b: 39,
+    maxAlpha: 86
   };
-
-  // Tuning parameters for night shadow mapping (adjust to match N2YO)
-  const SHADOW_Y_MULT = 2.2; // multiplier for solar declination -> vertical shift
-  const SHADOW_X_SHIFT_PX = 72;
-  const SHADOW_Y_SHIFT_PX = -72;
-  const WRAP_OFFSETS = [0];
+  const TERMINATOR_SOFTNESS = 0.08;
 
   function getDayOfYear(date) {
     const startOfYear = Date.UTC(date.getUTCFullYear(), 0, 0);
@@ -174,56 +128,65 @@ function runDashboard() {
     return 23.44 * Math.sin(angle);
   }
 
-  function getNoonLongitude(date) {
+  function getSubsolarLongitude(date) {
     const utcHours = getUtcDecimalHours(date);
     return normalizeLon((12 - utcHours) * 15);
   }
 
-  function toMapPointFromImagePx(xPx, yPx) {
-    const clampedY = Math.max(0, Math.min(MAP_IMAGE_SIZE.height, yPx));
-
-    return [
-      (1 - clampedY / MAP_IMAGE_SIZE.height) * 1000,
-      (xPx / MAP_IMAGE_SIZE.width) * 2000
-    ];
-  }
-
-  // buildNightShadowPoints(date, extraXpx, extraYpx)
-  function buildNightShadowPoints(date, extraXpx = 0, extraYpx = 0) {
-    const scaleX = MAP_IMAGE_SIZE.width / NIGHT_SHADOW_VIEWBOX.width;
-    const scaleY = MAP_IMAGE_SIZE.height / NIGHT_SHADOW_VIEWBOX.height;
-    // The template is centered on local noon. Its two high lobes are the two
-    // midnight sides, so moving the noon meridian moves the whole N2YO-like band.
-    const noonLon = getNoonLongitude(date);
-    const noonX = ((noonLon + 180) / 360) * MAP_IMAGE_SIZE.width;
-    const xOffset = noonX - (MAP_IMAGE_SIZE.width * 0.5) + SHADOW_X_SHIFT_PX + extraXpx;
-    const yOffset = -getSolarDeclination(date) * SHADOW_Y_MULT + SHADOW_Y_SHIFT_PX + extraYpx;
-
-    const points = NIGHT_SHADOW_TEMPLATE.map(function(point) {
-      const x = (point[0] * scaleX) + xOffset;
-      const y = (point[1] * scaleY) + yOffset;
-      return toMapPointFromImagePx(x, y);
-    });
-
-    return points;
-  }
-
-  const nightShadowGroup = L.layerGroup().addTo(map);
+  const nightShadowCanvas = document.createElement('canvas');
+  nightShadowCanvas.width = NIGHT_SHADOW_CANVAS.width;
+  nightShadowCanvas.height = NIGHT_SHADOW_CANVAS.height;
+  const nightShadowContext = nightShadowCanvas.getContext('2d');
+  const nightShadowOverlay = L.imageOverlay('', nativeBounds, {
+    pane: 'shadowPane',
+    opacity: 1,
+    interactive: false
+  }).addTo(map);
+  var lastShadowSecondBucket = '';
 
   function renderNightShadow(date) {
-    nightShadowGroup.clearLayers();
+    const secondBucket = Math.floor(date.getTime() / 5000).toString();
+    if (secondBucket === lastShadowSecondBucket) return;
+    lastShadowSecondBucket = secondBucket;
 
-    WRAP_OFFSETS.forEach(function(off) {
-      const basePoints = buildNightShadowPoints(date, off, 0);
+    const width = NIGHT_SHADOW_CANVAS.width;
+    const height = NIGHT_SHADOW_CANVAS.height;
+    const imageData = nightShadowContext.createImageData(width, height);
+    const data = imageData.data;
+    const sunLat = degToRad(getSolarDeclination(date));
+    const sunLon = degToRad(getSubsolarLongitude(date));
+    const sinSunLat = Math.sin(sunLat);
+    const cosSunLat = Math.cos(sunLat);
 
-      L.polygon(basePoints, {
-        pane: 'shadowPane',
-        color: 'transparent',
-        fillColor: '#111827',
-        fillOpacity: 0.26,
-        interactive: false
-      }).addTo(nightShadowGroup);
-    });
+    for (var y = 0; y < height; y++) {
+      const lat = degToRad(90 - (y / (height - 1)) * 180);
+      const sinLat = Math.sin(lat);
+      const cosLat = Math.cos(lat);
+
+      for (var x = 0; x < width; x++) {
+        const lon = degToRad((x / (width - 1)) * 360 - 180);
+        const sunlight =
+          sinLat * sinSunLat +
+          cosLat * cosSunLat * Math.cos(lon - sunLon);
+        const rawAlpha = Math.max(
+          0,
+          Math.min(
+            1,
+            (TERMINATOR_SOFTNESS - sunlight) / (TERMINATOR_SOFTNESS * 2)
+          )
+        );
+        const alpha = Math.round(rawAlpha * NIGHT_SHADOW_COLOR.maxAlpha);
+        const index = (y * width + x) * 4;
+
+        data[index] = NIGHT_SHADOW_COLOR.r;
+        data[index + 1] = NIGHT_SHADOW_COLOR.g;
+        data[index + 2] = NIGHT_SHADOW_COLOR.b;
+        data[index + 3] = alpha;
+      }
+    }
+
+    nightShadowContext.putImageData(imageData, 0, 0);
+    nightShadowOverlay.setUrl(nightShadowCanvas.toDataURL('image/png'));
   }
 
   const timeGridLines = [];
