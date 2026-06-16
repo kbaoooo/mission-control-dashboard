@@ -369,9 +369,29 @@ function runDashboard() {
     return points;
   }
 
+  function buildFootprintSegments(pos, sat) {
+    const segments = [];
+    var currentSegment = [];
+
+    buildFootprint(pos, sat).forEach(function(point) {
+      if (currentSegment.length > 0) {
+        const prevPoint = currentSegment[currentSegment.length - 1];
+        if (Math.abs(point[1] - prevPoint[1]) > MAP_WIDTH / 2) {
+          if (currentSegment.length > 1) segments.push(currentSegment);
+          currentSegment = [];
+        }
+      }
+
+      currentSegment.push(point);
+    });
+
+    if (currentSegment.length > 1) segments.push(currentSegment);
+    return segments;
+  }
+
   const satObjects = satellites.map(function(sat, i) {
     const clr = colorsList[i % colorsList.length];
-    const visibleByDefault = i === 0;
+    const visibleByDefault = true;
     const initialPosition = positionAt(sat, orbitEpoch);
     
     const icon = L.divIcon({
@@ -388,12 +408,10 @@ function runDashboard() {
       interactive: false
     });
 
-    const footprint = L.polygon(buildFootprint(initialPosition, sat), {
+    const footprint = L.polyline(buildFootprintSegments(initialPosition, sat), {
       color: clr,
       weight: 2,
       opacity: 0.85,
-      fillColor: clr,
-      fillOpacity: 0.04,
       dashArray: '6 5',
       interactive: false
     });
@@ -462,7 +480,7 @@ function runDashboard() {
       const pos = positionAt(sat.orbit, now);
       sat.marker.setLatLng(pos.mapPoint);
       sat.track.setLatLngs(buildGroundTrack(sat.orbit, now));
-      sat.footprint.setLatLngs(buildFootprint(pos, sat.orbit));
+      sat.footprint.setLatLngs(buildFootprintSegments(pos, sat.orbit));
     });
   }, 250);
 
