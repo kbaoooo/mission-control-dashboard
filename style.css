@@ -380,20 +380,66 @@ body {
 .sat-toggle-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 12px;
   margin: 0;
+  padding: 10px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.42), rgba(15, 23, 42, 0.28));
   color: var(--text);
   font-size: 13px;
   font-weight: 800;
   line-height: 1.2;
   cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.sat-toggle-row:hover {
+  background: rgba(30, 41, 59, 0.55);
+  border-color: rgba(96, 165, 250, 0.35);
 }
 
 .sat-toggle-row input {
   width: 15px;
   height: 15px;
+  flex: 0 0 auto;
   margin: 0;
   accent-color: var(--blue);
+}
+
+.sat-toggle-meta {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
+.sat-toggle-name {
+  align-self: flex-start;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sat-toggle-details {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+}
+
+.sat-toggle-line {
+  color: #9fb2d1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: normal;
+  line-height: 1.25;
+  max-width: 100%;
 }
 
 .time-control {
