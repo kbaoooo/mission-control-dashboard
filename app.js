@@ -140,25 +140,28 @@ function runDashboard() {
     L.imageOverlay('', rightBounds, { pane: 'shadowPane', opacity: 1, interactive: false }).addTo(map)
   ];
   var lastShadowSecondBucket = '';
-  const urlParams = new URLSearchParams(window.location.search);
-  const demoHourValue = Number(urlParams.get('demoHour'));
-  const demoMinuteValue = Number(urlParams.get('demoMinute') || 0);
-  const isDemoShadowTime =
-    Number.isFinite(demoHourValue) &&
-    demoHourValue >= 0 &&
-    demoHourValue <= 23;
+  const VIETNAM_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+  const vietnamTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: VIETNAM_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const utcTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'UTC',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
 
-  function getShadowDate() {
-    if (!isDemoShadowTime) return new Date();
+  function formatVietnamTime(date) {
+    return vietnamTimeFormatter.format(date);
+  }
 
-    const demoDate = new Date();
-    demoDate.setHours(
-      demoHourValue,
-      Number.isFinite(demoMinuteValue) ? demoMinuteValue : 0,
-      0,
-      0
-    );
-    return demoDate;
+  function formatUtcTime(date) {
+    return utcTimeFormatter.format(date);
   }
 
   function renderNightShadow(date) {
@@ -233,20 +236,20 @@ function runDashboard() {
   timeControl.addTo(map);
 
   function updateTimeAndShadow() {
-    const shadowDate = getShadowDate();
+    const now = new Date();
     const timeEl = document.querySelector('.time-control');
     if (timeEl) {
       timeEl.innerHTML =
-        '<div>' + (isDemoShadowTime ? 'DEMO ' : '') + 'LOCAL ' + shadowDate.toLocaleTimeString() + '</div>' +
-        '<div>UTC ' + shadowDate.toISOString().slice(11, 19) + '</div>';
+        '<div>VN ' + formatVietnamTime(now) + '</div>' +
+        '<div>UTC ' + formatUtcTime(now) + '</div>';
     }
-    renderNightShadow(shadowDate);
+    renderNightShadow(now);
   }
 
   updateTimeAndShadow();
   setInterval(updateTimeAndShadow, 1000);
   map.on('zoom move resize viewreset', function() {
-    renderNightShadow(getShadowDate());
+    renderNightShadow(new Date());
   });
 
   function makeLaunchOrbit(name, altitudeKm, inclinationDeg, launchLatDeg, launchLonDeg, alongTrackOffsetDeg) {
@@ -482,7 +485,7 @@ function runDashboard() {
     const randomSat = visibleSatObjects[Math.floor(Math.random() * visibleSatObjects.length)] || satObjects[0];
     const log = document.querySelector(".log");
     if (!log) return;
-    const time = new Date().toLocaleTimeString();
+    const time = formatVietnamTime(new Date());
 
     const msg = "[" + time + "] [" + randomSat.name + "] Downlink: " + speed + " Mbps | Nhiên liệu: " + fuel + "% | Tín hiệu: " + signal + "%";
     const div = document.createElement("div");

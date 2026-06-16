@@ -108,8 +108,8 @@ button:hover { background: #374151; }
 
   <nav class="nav-tabs">
     <a href="index.html" class="nav-link">📡 TRACKING MAP</a>
-    <a href="analytics.html" class="nav-link active">📊 TELEMETRY</a>
-    <a href="commands.html" class="nav-link">⚙️ COMMAND</a>
+    <a href="analytics.html" class="nav-link active">📊 TELEMETRY CHART</a>
+    <a href="commands.html" class="nav-link">⚙️ COMMAND & PASSES</a>
   </nav>
 
   <!-- MODE SWITCH -->
@@ -120,7 +120,7 @@ button:hover { background: #374151; }
     <button onclick="setMode('week')">1w</button>
   </div>
 
-  <div class="status">🟢 VINUNI GS-1 ONLINE</div>
+  <div class="status">🟢 TRẠM VINUNIVERSITY GS-1: KẾT NỐI ỔN ĐỊNH</div>
 </header>
 
 <div class="container">
@@ -143,7 +143,7 @@ button:hover { background: #374151; }
 
 <script>
 // ================= SAT BEHAVIOR =================
-const sats = Array.from({ length: 10 }, (_, i) => ({
+const sats = Array.from({ length: 8 }, (_, i) => ({
   name: "SAT-" + (i + 1),
   color: `hsl(${i * 36}, 80%, 60%)`,
   base: 3 + Math.random(),
