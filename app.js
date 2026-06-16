@@ -7,6 +7,8 @@ const initWhenReady = setInterval(function() {
 }, 50);
 
 function runDashboard() {
+  const MAP_WIDTH = 2000;
+  const MAP_HEIGHT = 1000;
   // ======================
   // INIT MAP (Bung hết cỡ bản đồ và vô hiệu hóa khoảng trống thừa)
   // ======================
@@ -21,24 +23,19 @@ function runDashboard() {
   });
 
   // Thiết lập ma trận ranh giới bản đồ (2000 x 1000)
-  var pointBottomLeft = new Array();
-  pointBottomLeft.push(0);
-  pointBottomLeft.push(0);
+  const leftBounds = [[0, -MAP_WIDTH], [MAP_HEIGHT, 0]];
+  const mainBounds = [[0, 0], [MAP_HEIGHT, MAP_WIDTH]];
+  const rightBounds = [[0, MAP_WIDTH], [MAP_HEIGHT, MAP_WIDTH * 2]];
+  const worldBounds = [[0, -MAP_WIDTH], [MAP_HEIGHT, MAP_WIDTH * 2]];
 
-  var pointTopRight = new Array();
-  pointTopRight.push(1000);
-  pointTopRight.push(2000);
-
-  var nativeBounds = new Array();
-  nativeBounds.push(pointBottomLeft);
-  nativeBounds.push(pointTopRight);
-
-  map.setMaxBounds(nativeBounds);
+  map.setMaxBounds(worldBounds);
   
   // ======================
   // SỬ DỤNG HÌNH ẢNH MAP.WEBP TỪ REPO CỦA BẠN
   // ======================
-  L.imageOverlay('map.webp', nativeBounds, { pane: 'tilePane' }).addTo(map);
+  L.imageOverlay('map.webp', leftBounds, { pane: 'tilePane' }).addTo(map);
+  L.imageOverlay('map.webp', mainBounds, { pane: 'tilePane' }).addTo(map);
+  L.imageOverlay('map.webp', rightBounds, { pane: 'tilePane' }).addTo(map);
 
   const VINUNI_LAT = 20.993;
   const VINUNI_LON = 105.944;
@@ -75,9 +72,9 @@ function runDashboard() {
   const EARTH_MU = 398600.4418;
   const EARTH_ROTATION_RAD_PER_SEC = 7.2921159e-5;
   const TIME_SCALE = 1;
-  const orbitEpoch = Date.now();
-  const MAP_X_OFFSET = VINUNI_MAP_X - (((VINUNI_LON + 180) / 360) * 2000);
-  const MAP_Y_OFFSET = VINUNI_MAP_Y - (((VINUNI_LAT + 90) / 180) * 1000);
+  const orbitEpoch = Date.UTC(2026, 5, 15, 0, 0, 0);
+  const MAP_X_OFFSET = VINUNI_MAP_X - (((VINUNI_LON + 180) / 360) * MAP_WIDTH);
+  const MAP_Y_OFFSET = VINUNI_MAP_Y - (((VINUNI_LAT + 90) / 180) * MAP_HEIGHT);
 
   map.createPane('shadowPane');
   map.getPane('shadowPane').style.zIndex = 350;
@@ -95,8 +92,8 @@ function runDashboard() {
   }
 
   function geoToMapPoint(latDeg, lonDeg) {
-    const x = ((normalizeLon(lonDeg) + 180) / 360) * 2000 + MAP_X_OFFSET;
-    const y = ((latDeg + 90) / 180) * 1000 + MAP_Y_OFFSET;
+    const x = ((normalizeLon(lonDeg) + 180) / 360) * MAP_WIDTH + MAP_X_OFFSET;
+    const y = ((latDeg + 90) / 180) * MAP_HEIGHT + MAP_Y_OFFSET;
     return [y, x];
   }
 
@@ -137,11 +134,11 @@ function runDashboard() {
   nightShadowCanvas.width = NIGHT_SHADOW_CANVAS.width;
   nightShadowCanvas.height = NIGHT_SHADOW_CANVAS.height;
   const nightShadowContext = nightShadowCanvas.getContext('2d');
-  const nightShadowOverlay = L.imageOverlay('', nativeBounds, {
-    pane: 'shadowPane',
-    opacity: 1,
-    interactive: false
-  }).addTo(map);
+  const nightShadowOverlays = [
+    L.imageOverlay('', leftBounds, { pane: 'shadowPane', opacity: 1, interactive: false }).addTo(map),
+    L.imageOverlay('', mainBounds, { pane: 'shadowPane', opacity: 1, interactive: false }).addTo(map),
+    L.imageOverlay('', rightBounds, { pane: 'shadowPane', opacity: 1, interactive: false }).addTo(map)
+  ];
   var lastShadowSecondBucket = '';
   const urlParams = new URLSearchParams(window.location.search);
   const demoHourValue = Number(urlParams.get('demoHour'));
@@ -206,7 +203,10 @@ function runDashboard() {
     }
 
     nightShadowContext.putImageData(imageData, 0, 0);
-    nightShadowOverlay.setUrl(nightShadowCanvas.toDataURL('image/png'));
+    const shadowUrl = nightShadowCanvas.toDataURL('image/png');
+    nightShadowOverlays.forEach(function(overlay) {
+      overlay.setUrl(shadowUrl);
+    });
   }
 
   const timeGridLines = [];
@@ -327,7 +327,7 @@ function runDashboard() {
 
       if (currentSegment.length > 0) {
         const prevPoint = currentSegment[currentSegment.length - 1];
-        if (Math.abs(pos.mapPoint[1] - prevPoint[1]) > 1000) {
+        if (Math.abs(pos.mapPoint[1] - prevPoint[1]) > MAP_WIDTH / 2) {
           segments.push(currentSegment);
           currentSegment = [];
         }
@@ -373,7 +373,7 @@ function runDashboard() {
     
     const icon = L.divIcon({
       className: 'satellite-custom-icon', 
-      html: '<div class="sat-dot" style="background:' + clr + '; box-shadow: 0 0 10px ' + clr + '"></div><div class="sat-label" style="border-left: 2px solid ' + clr + '">' + sat.name + '</div>',
+      html: '<div class="sat-dot" style="background:' + clr + '; border-color:' + clr + '"></div><div class="sat-label" style="border-left: 2px solid ' + clr + '">' + sat.name + '</div>',
       iconSize: L.point(10, 10),
       iconAnchor: L.point(5, 5)
     });
@@ -387,10 +387,11 @@ function runDashboard() {
 
     const footprint = L.polygon(buildFootprint(initialPosition, sat), {
       color: clr,
-      weight: 1,
-      opacity: 0.2,
+      weight: 2,
+      opacity: 0.85,
       fillColor: clr,
-      fillOpacity: 0.07,
+      fillOpacity: 0.04,
+      dashArray: '6 5',
       interactive: false
     });
 
@@ -428,9 +429,12 @@ function runDashboard() {
     if (map.hasLayer(sat.marker)) map.removeLayer(sat.marker);
   }
 
-  const satelliteToggleControl = L.control({ position: 'topright' });
-  satelliteToggleControl.onAdd = function() {
-    const container = L.DomUtil.create('div', 'sat-toggle-control');
+  function renderSatelliteToggleSidebar() {
+    const sidebar = document.querySelector('.left-panel');
+    if (!sidebar) return;
+
+    const card = L.DomUtil.create('div', 'card satellite-toggle-card', sidebar);
+    const container = L.DomUtil.create('div', 'sat-toggle-control', card);
     container.innerHTML = '<div class="sat-toggle-title">SATELLITES</div>';
 
     satObjects.forEach(function(sat) {
@@ -441,12 +445,8 @@ function runDashboard() {
         setSatelliteVisible(sat, input.checked);
       });
     });
-
-    L.DomEvent.disableClickPropagation(container);
-    L.DomEvent.disableScrollPropagation(container);
-    return container;
-  };
-  satelliteToggleControl.addTo(map);
+  }
+  renderSatelliteToggleSidebar();
 
   // ======================
   // THUẬT TOÁN QUỸ ĐẠO LEO TRẢI 2D KIỂU GROUND TRACK

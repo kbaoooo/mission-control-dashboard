@@ -34,18 +34,38 @@ body {
   width: 320px;
   background: #111827;
   border-right: 1px solid #1f2937;
-  padding: 20px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
   box-sizing: border-box;
   z-index: 10;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #374151 #111827;
+}
+
+.left-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.left-panel::-webkit-scrollbar-track {
+  background: #111827;
+}
+
+.left-panel::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 999px;
+}
+
+.left-panel::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
 }
 
 .card {
   background: #1f2937;
   border-radius: 8px;
-  padding: 15px;
+  padding: 12px;
   border-left: 4px solid #3b82f6; 
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
 }
@@ -54,36 +74,40 @@ body {
   border-left-color: #f59e0b;
 }
 
+.satellite-toggle-card {
+  border-left-color: #10b981;
+}
+
 .card h3 {
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   font-size: 12px;
   letter-spacing: 0.08em;
   color: #9ca3af;
 }
 
 .circle {
-  width: 70px;
-  height: 70px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   background: radial-gradient(circle, #10b981 0%, #059669 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 800;
-  font-size: 18px;
-  margin: 15px 0;
+  font-size: 16px;
+  margin: 10px 0;
   box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
 }
 
 .stats {
-  font-size: 13px;
-  line-height: 1.6;
+  font-size: 12px;
+  line-height: 1.45;
 }
 
 .green { color: #10b981; font-weight: bold; }
 .warning { color: #9ca3af; font-weight: bold; }
-.speed { color: #3b82f6; font-weight: bold; font-size: 24px; margin-top: 5px; font-family: monospace; }
+.speed { color: #3b82f6; font-weight: bold; font-size: 20px; margin-top: 4px; font-family: monospace; }
 
 /* PANEL CHÍNH: MAP & LOG */
 .main-panel {
@@ -129,9 +153,10 @@ body {
 }
 
 .sat-dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
+  border: 2px solid currentColor;
   flex-shrink: 0;
   display: block !important;
 }
@@ -201,13 +226,10 @@ body {
 }
 
 .sat-toggle-control {
-  margin-top: 70px !important;
-  background: rgba(7, 10, 18, 0.88);
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 6px;
-  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   font-family: 'Inter', sans-serif;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
 }
 
 .sat-toggle-title {
@@ -215,23 +237,26 @@ body {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 
 .sat-toggle-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  min-width: 92px;
-  margin: 4px 0;
+  margin: 0;
   color: #e2e8f0;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+  line-height: 1.2;
+  padding: 2px 0;
 }
 
 .sat-toggle-row input {
   margin: 0;
+  width: 12px;
+  height: 12px;
   accent-color: #3b82f6;
 }
 
